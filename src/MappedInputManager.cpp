@@ -54,9 +54,37 @@ bool MappedInputManager::mapButton(const Button button, bool (HalGPIO::*fn)(uint
   return false;
 }
 
-bool MappedInputManager::wasPressed(const Button button) const { return mapButton(button, &HalGPIO::wasPressed); }
+bool MappedInputManager::wasPressed(const Button button) const {
+#ifdef XTENIA_DEV_HARNESS
+  const uint16_t mask = static_cast<uint16_t>(1u << static_cast<int>(button));
+  if (synthPressed_ & mask) {
+    synthPressed_ &= static_cast<uint16_t>(~mask);
+    return true;
+  }
+#endif
+  return mapButton(button, &HalGPIO::wasPressed);
+}
 
-bool MappedInputManager::wasReleased(const Button button) const { return mapButton(button, &HalGPIO::wasReleased); }
+bool MappedInputManager::wasReleased(const Button button) const {
+#ifdef XTENIA_DEV_HARNESS
+  const uint16_t mask = static_cast<uint16_t>(1u << static_cast<int>(button));
+  if (synthReleased_ & mask) {
+    synthReleased_ &= static_cast<uint16_t>(~mask);
+    return true;
+  }
+#endif
+  return mapButton(button, &HalGPIO::wasReleased);
+}
+
+#ifdef XTENIA_DEV_HARNESS
+void MappedInputManager::injectSyntheticPress(const Button button) {
+  synthPressed_ |= static_cast<uint16_t>(1u << static_cast<int>(button));
+}
+
+void MappedInputManager::injectSyntheticRelease(const Button button) {
+  synthReleased_ |= static_cast<uint16_t>(1u << static_cast<int>(button));
+}
+#endif
 
 bool MappedInputManager::isPressed(const Button button) const { return mapButton(button, &HalGPIO::isPressed); }
 

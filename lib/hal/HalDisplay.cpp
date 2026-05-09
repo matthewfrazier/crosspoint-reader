@@ -1,5 +1,10 @@
 #include <HalDisplay.h>
 #include <HalGPIO.h>
+#include <Arduino.h>
+
+#ifdef XTENIA_DEV_HARNESS
+#include <XteniaDevHarness.h>
+#endif
 
 // Global HalDisplay instance
 HalDisplay display;
@@ -55,7 +60,21 @@ void HalDisplay::displayBuffer(HalDisplay::RefreshMode mode, bool turnOffScreen)
     einkDisplay.requestResync(1);
   }
 
+#ifdef XTENIA_DEV_HARNESS
+  const uint32_t _xth_t0 = millis();
+#endif
+
   einkDisplay.displayBuffer(convertRefreshMode(mode), turnOffScreen);
+
+#ifdef XTENIA_DEV_HARNESS
+  const uint32_t _xth_dur = millis() - _xth_t0;
+  xtenia::harness().onRefreshComplete(static_cast<uint8_t>(mode), _xth_dur, _xth_dur);
+  if (xtenia::harness().autoDump()) {
+    xtenia::harness().emitFrame(einkDisplay.getFrameBuffer(), einkDisplay.getBufferSize(),
+                                einkDisplay.getDisplayWidth(), einkDisplay.getDisplayHeight(),
+                                static_cast<uint8_t>(mode));
+  }
+#endif
 }
 
 void HalDisplay::refreshDisplay(HalDisplay::RefreshMode mode, bool turnOffScreen) {

@@ -31,6 +31,10 @@
 #include "util/ButtonNavigator.h"
 #include "util/ScreenshotUtil.h"
 
+#ifdef XTENIA_DEV_HARNESS
+#include <XteniaDevHarness.h>
+#endif
+
 MappedInputManager mappedInputManager(gpio);
 GfxRenderer renderer(display);
 ActivityManager activityManager(renderer, mappedInputManager);
@@ -254,6 +258,17 @@ void setup() {
   }
 #endif
 
+#ifdef XTENIA_DEV_HARNESS
+  // Upstream's `Serial` macro maps to MySerialImpl (Print only); use logSerial
+  // (the underlying HWCDC&) for Stream-typed access.
+  xtenia::harness().begin(&logSerial);
+  xtenia::harness().setFbDumpCallback([](void* user) {
+    auto* d = static_cast<HalDisplay*>(user);
+    xtenia::harness().emitFrame(d->getFrameBuffer(), d->getBufferSize(),
+                                d->getDisplayWidth(), d->getDisplayHeight(), 0);
+  }, &display);
+#endif
+
   LOG_INF("MAIN", "Hardware detect: %s", gpio.deviceIsX3() ? "X3" : "X4");
 
   // SD Card Initialization
@@ -351,6 +366,21 @@ void loop() {
   static unsigned long maxLoopDuration = 0;
   const unsigned long loopStartTime = millis();
   static unsigned long lastMemPrint = 0;
+
+#ifdef XTENIA_DEV_HARNESS
+  xtenia::harness().loop();
+  // Splice harness-injected synthetic button events into the input layer
+  // before the normal hardware update.
+  xtenia::InjectedEvent _xth_ev;
+  while (xtenia::harness().popInjectedEvent(_xth_ev)) {
+    auto _xth_btn = static_cast<MappedInputManager::Button>(static_cast<int>(_xth_ev.btn));
+    if (_xth_ev.kind == xtenia::InjectedEvent::Kind::Press) {
+      mappedInputManager.injectSyntheticPress(_xth_btn);
+    } else if (_xth_ev.kind == xtenia::InjectedEvent::Kind::Release) {
+      mappedInputManager.injectSyntheticRelease(_xth_btn);
+    }
+  }
+#endif
 
   gpio.update();
   halTiltSensor.update(SETTINGS.tiltPageTurn, SETTINGS.orientation, activityManager.isReaderActivity());

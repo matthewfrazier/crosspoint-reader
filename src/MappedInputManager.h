@@ -26,8 +26,23 @@ class MappedInputManager {
   // Returns the raw front button index that was pressed this frame (or -1 if none).
   int getPressedFrontButton() const;
 
+#ifdef XTENIA_DEV_HARNESS
+  // Inject a synthetic press/release event. The next call to wasPressed()
+  // / wasReleased() for the named button will return true exactly once,
+  // mimicking a hardware-driven press.
+  void injectSyntheticPress(Button button);
+  void injectSyntheticRelease(Button button);
+#endif
+
  private:
   HalGPIO& gpio;
 
   bool mapButton(Button button, bool (HalGPIO::*fn)(uint8_t) const) const;
+
+#ifdef XTENIA_DEV_HARNESS
+  // Bitmask of synthetic state pending for the next wasPressed/wasReleased
+  // call. Bit position = static_cast<int>(Button).
+  mutable uint16_t synthPressed_ = 0;
+  mutable uint16_t synthReleased_ = 0;
+#endif
 };
