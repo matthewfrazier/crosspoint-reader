@@ -44,5 +44,8 @@ class MappedInputManager {
   // call. Bit position = static_cast<int>(Button).
   mutable uint16_t synthPressed_ = 0;
   mutable uint16_t synthReleased_ = 0;
+  // Per-button level-triggered state for isPressed():
+  //   0 = idle (defer to hardware), 1 = press pending, 2 = release pending.
+  mutable uint8_t synthState_[9] = {};
 #endif
 };

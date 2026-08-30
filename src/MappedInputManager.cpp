@@ -79,14 +79,27 @@ bool MappedInputManager::wasReleased(const Button button) const {
 #ifdef XTENIA_DEV_HARNESS
 void MappedInputManager::injectSyntheticPress(const Button button) {
   synthPressed_ |= static_cast<uint16_t>(1u << static_cast<int>(button));
+  const int idx = static_cast<int>(button);
+  if (idx >= 0 && idx < 9) synthState_[idx] = 1;
 }
 
 void MappedInputManager::injectSyntheticRelease(const Button button) {
   synthReleased_ |= static_cast<uint16_t>(1u << static_cast<int>(button));
+  const int idx = static_cast<int>(button);
+  if (idx >= 0 && idx < 9) synthState_[idx] = 2;
 }
 #endif
 
-bool MappedInputManager::isPressed(const Button button) const { return mapButton(button, &HalGPIO::isPressed); }
+bool MappedInputManager::isPressed(const Button button) const {
+#ifdef XTENIA_DEV_HARNESS
+  const int idx = static_cast<int>(button);
+  if (idx >= 0 && idx < 9) {
+    if (synthState_[idx] == 1) { synthState_[idx] = 2; return true; }
+    if (synthState_[idx] == 2) { synthState_[idx] = 0; return false; }
+  }
+#endif
+  return mapButton(button, &HalGPIO::isPressed);
+}
 
 bool MappedInputManager::wasAnyPressed() const { return gpio.wasAnyPressed(); }
 
