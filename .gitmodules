@@ -1,3 +1,6 @@
 [submodule "open-x4-sdk"]
 	path = open-x4-sdk
 	url = https://github.com/crosspoint-reader/community-sdk.git
+[submodule "tools/xtenia-devharness"]
+	path = tools/xtenia-devharness
+	url = https://github.com/matthewfrazier/xtenia-devharness.git
